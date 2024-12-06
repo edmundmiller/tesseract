@@ -1,19 +1,20 @@
 #!/usr/bin/env nextflow
 
-nextflow.enable.dsl=2
+nextflow.enable.dsl = 2
 
 
 
 workflow {
     // load conditions file and split each line into
     // a set of input conditions
-    conditions = Channel.fromPath("${params.run_conditions_file}")
+    conditions = Channel
+        .fromPath("${params.run_conditions_file}")
         .splitCsv(sep: "\t", header: true)
 
     // run pipeline if specified
-    trials = Channel.fromList( 0 .. params.run_trials-1 )
+    trials = Channel.fromList(0..params.run_trials - 1)
 
-    if ( params.run == true ) {
+    if (params.run == true) {
         run_pipeline(conditions, trials)
         trace_files = run_pipeline.out.trace_files.flatMap()
     }
@@ -29,14 +30,15 @@ workflow {
     // saved to the '_trace' directory.
     //
     // Group trace files into a list.
-    trace_files = Channel.fromPath("_trace/${params.pipeline_name}.*.txt")
+    trace_files = Channel
+        .fromPath("_trace/${params.pipeline_name}.*.txt")
         .mix(trace_files)
         .unique { it -> it.name }
         .map { it -> [it.name.split(/\./)[0], it] }
         .groupTuple()
 
     // run aggregate if specified
-    if ( params.aggregate == true ) {
+    if (params.aggregate == true) {
         aggregate(trace_files)
         datasets = aggregate.out.datasets.flatMap()
     }
@@ -50,30 +52,33 @@ workflow {
     //
     // Remove duplicate files as dataset files from aggregate
     // are saved to the '_datasets' directory.
-    datasets = Channel.fromPath("_datasets/${params.pipeline_name}.*.txt")
+    datasets = Channel
+        .fromPath("_datasets/${params.pipeline_name}.*.txt")
         .mix(datasets)
         .unique { it -> it.name }
         .map { it -> [it.name.split(/\./), it] }
         .map { it -> [it[0][0], it[0][1], it[1]] }
 
     // run train if specified
-    train_targets = Channel.fromList( params.train_targets )
+    train_targets = Channel.fromList(params.train_targets)
     train_merge_args = params.train_merge_args
         .collect { arg -> "--merge ${arg}" }
         .join(" ")
 
-    if ( params.train == true ) {
+    if (params.train == true) {
         train(datasets, train_targets)
     }
 
     // create a single resource prediction query from the params
-    predict_queries = Channel.value([
-        params.pipeline_name,
-        params.predict_process,
-        params.predict_inputs
-    ])
+    predict_queries = Channel.value(
+        [
+            params.pipeline_name,
+            params.predict_process,
+            params.predict_inputs
+        ]
+    )
 
-    if ( params.predict == true ) {
+    if (params.predict == true) {
         predict(predict_queries)
     }
 }
@@ -90,14 +95,14 @@ process run_pipeline {
     echo true
 
     input:
-        each c
-        each trial
+    each c
+    each trial
 
     output:
-        path("${params.pipeline_name}.*.txt"), emit: trace_files
+    path ("${params.pipeline_name}.*.txt"), emit: trace_files
 
     script:
-        """
+    """
         # initialize environment
         module purge
         module load anaconda3/5.1.0-gcc/8.3.1
@@ -144,13 +149,13 @@ process aggregate {
     echo true
 
     input:
-        tuple val(pipeline_name), path(trace_files)
+    tuple val(pipeline_name), path(trace_files)
 
     output:
-        path("${params.pipeline_name}.*.trace.txt"), emit: datasets
+    path ("${params.pipeline_name}.*.trace.txt"), emit: datasets
 
     script:
-        """
+    """
         # initialize environment
         module purge
         module load anaconda3/5.1.0-gcc/8.3.1
@@ -175,17 +180,17 @@ process train {
     echo true
 
     input:
-        tuple val(pipeline_name), val(process_name), path(dataset)
-        each target
+    tuple val(pipeline_name), val(process_name), path(dataset)
+    each target
 
     output:
-        tuple val(pipeline_name), path("*.json"), path("*.pkl"), emit: models
+    tuple val(pipeline_name), path("*.json"), path("*.pkl"), emit: models
 
     when:
-        params.train_inputs.containsKey(process_name)
+    params.train_inputs.containsKey(process_name)
 
     script:
-        """
+    """
         # initialize environment
         module purge
         module load anaconda3/5.1.0-gcc/8.3.1
@@ -223,10 +228,10 @@ process predict {
     echo true
 
     input:
-        tuple val(pipeline_name), val(process_name), val(inputs)
+    tuple val(pipeline_name), val(process_name), val(inputs)
 
     script:
-        """
+    """
         # initialize environment
         module purge
         module load anaconda3/5.1.0-gcc/8.3.1
