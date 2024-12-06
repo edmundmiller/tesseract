@@ -26,7 +26,7 @@ process run_pipeline {
     // each trial
 
     output:
-    path ("${params.pipeline_name}.*.txt"), emit: trace_files
+    path ("trace-*.txt"), emit: trace_files
 
     script:
     // # create params file from conditions
@@ -41,6 +41,7 @@ process run_pipeline {
         -latest \\
         --condition_cpu $cpu \\
         --condition_memory $mem \\
+        -with-trace \\
         -resume
 
     # save trace file
