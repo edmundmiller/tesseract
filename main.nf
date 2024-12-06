@@ -14,13 +14,8 @@ workflow {
     // run pipeline if specified
     trials = Channel.fromList(0..params.run_trials - 1)
 
-    if (params.run == true) {
-        run_pipeline(cpu_values.combine(memory_values), trials)
-        trace_files = run_pipeline.out.trace_files.flatMap()
-    }
-    else {
-        trace_files = Channel.empty()
-    }
+    run_pipeline(cpu_values.combine(memory_values), trials)
+    trace_files = run_pipeline.out.trace_files.flatMap()
 
     // Load trace files for the current pipeline from the
     // '_trace' directory and merge with trace files from
@@ -90,7 +85,7 @@ workflow {
  */
 process run_pipeline {
     publishDir "_trace", mode: "copy"
-    debug true
+    debug false
     maxForks 1
     tag "cpu: ${cpu} mem: ${mem}"
 
