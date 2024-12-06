@@ -1,6 +1,7 @@
 process TRIMGALORE {
     tag "${meta.id}"
     label 'process_high'
+    cpus "${test_cpus}"
 
     conda "${moduleDir}/environment.yml"
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
@@ -9,6 +10,7 @@ process TRIMGALORE {
 
     input:
     tuple val(meta), path(reads)
+    val test_cpus
 
     output:
     tuple val(meta), path("*{3prime,5prime,trimmed,val}*.fq.gz"), emit: reads
