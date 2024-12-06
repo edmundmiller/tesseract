@@ -19,8 +19,9 @@ workflow {
  */
 process run_pipeline {
     publishDir "_trace", mode: "copy"
-    echo true
+    debug true
     maxForks 1
+    tag "cpu: $cpu mem: $mem"
 
     input:
     tuple val(cpu), val(mem)
