@@ -5,17 +5,17 @@ nextflow.enable.dsl = 2
 
 
 workflow {
+    // TODO Replace with nf-schema
     // load conditions file and split each line into
     // a set of input conditions
-    conditions = Channel
-        .fromPath("${params.run_conditions_file}")
-        .splitCsv(sep: "\t", header: true)
+    cpu_values = channel.of(4..6)
+    memory_values = channel.of(4..6)
 
     // run pipeline if specified
     trials = Channel.fromList(0..params.run_trials - 1)
 
     if (params.run == true) {
-        run_pipeline(conditions, trials)
+        run_pipeline(cpu_values.combine(memory_values), trials)
         trace_files = run_pipeline.out.trace_files.flatMap()
     }
     else {
@@ -83,8 +83,6 @@ workflow {
     }
 }
 
-
-
 /**
  * The run_pipeline process performs a single run of a Nextflow
  * pipeline for each set of input conditions. All trace
@@ -92,50 +90,28 @@ workflow {
  */
 process run_pipeline {
     publishDir "_trace", mode: "copy"
-    echo true
+    debug true
+    maxForks 1
+    tag "cpu: ${cpu} mem: ${mem}"
 
     input:
-    each c
+    tuple val(cpu), val(mem)
     each trial
 
     output:
-    path ("${params.pipeline_name}.*.txt"), emit: trace_files
+    path ("trace-*.txt"), emit: trace_files
 
     script:
     """
-        # initialize environment
-        module purge
-        module load anaconda3/5.1.0-gcc/8.3.1
-        module load nextflow/21.04
-
-        # create params file from conditions
-        echo "${c.toString().replace('[': '', ']': '', ', ': '\n', ':': ': ')}" > params.yaml
-
-        make-params.py params.yaml
-
-        # change to launch directory
-        cd ${workflow.launchDir}/${params.pipeline_name}
-
-        # run nextflow pipeline
-        nextflow run \
-            ${params.run_pipeline} \
-            -ansi-log false \
-            -latest \
-            -params-file \${OLDPWD}/params.yaml \
-            -profile ${params.run_profiles} \
-            -resume
-
-        # save trace file
-        HASH=`printf %04x%04x \${RANDOM} \${RANDOM}`
-
-        cp ${params.run_trace_file} \${OLDPWD}/${params.pipeline_name}.trace.\${HASH}.txt
-
-        # cleanup
-        rm -rf ${params.run_output_dir}
-        """
+    nextflow run ${workflow.launchDir}/nfcore.nf \\
+        -ansi-log false \\
+        -latest \\
+        -process.cpus=${cpu} \\
+        -process.memory=${mem + '.GB'} \\
+        -with-trace \\
+        -resume
+    """
 }
-
-
 
 /**
  * The aggregate process combines the input features from
