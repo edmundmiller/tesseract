@@ -20,6 +20,7 @@ workflow {
 process run_pipeline {
     publishDir "_trace", mode: "copy"
     echo true
+    maxForks 1
 
     input:
     tuple val(cpu), val(mem)
