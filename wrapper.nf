@@ -40,8 +40,8 @@ process run_pipeline {
     nextflow run ${workflow.launchDir}/nfcore.nf \\
         -ansi-log false \\
         -latest \\
-        --condition_cpu $cpu \\
-        --condition_memory $mem \\
+        -process.cpus=$cpu \\
+        -process.memory=${mem + '.GB'} \\
         -with-trace \\
         -resume
 
