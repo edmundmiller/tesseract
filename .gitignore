@@ -1,5 +1,6 @@
 .ipynb_checkpoints
 .nextflow*
+work/
 data*
 input*
 output*
